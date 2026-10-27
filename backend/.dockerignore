@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+*.sqlite3
+media
+staticfiles
+.env*
+.local-admin.txt
+.venv
+requirements-dev.txt
+.git

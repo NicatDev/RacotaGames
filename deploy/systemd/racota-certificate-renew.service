@@ -1,0 +1,8 @@
+[Unit]
+Description=Renew only RacotaGames certificate and validate/reload shared Nginx
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /opt/racotagames/deploy/renew-certificate.sh

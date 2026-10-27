@@ -1,0 +1,14 @@
+services:
+  certbot:
+    image: certbot/dns-cloudflare:latest
+    profiles: [certificates]
+    volumes:
+      - shared_certificates:/etc/letsencrypt
+      - ./deploy/secrets/cloudflare.ini:/run/secrets/cloudflare.ini:ro
+    networks: [certificate_egress]
+volumes:
+  shared_certificates:
+    external: true
+    name: artexperts_certificates
+networks:
+  certificate_egress:
