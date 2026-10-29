@@ -85,6 +85,8 @@ Yeni production DB boşdur. Lokal QA admin və məktubları daşınmır. Real co
 
 ## 3. Cloudflare və HTTPS sertifikatı
 
+Əgər gateway healthy olsa da brauzerdə Art Experts açılırsa, giriş Nginx-ində `racotagames.com` server block-u və sertifikat hələ aktiv olmaya bilər. `RACOTA_CERT_MISSING` nəticəsi varsa əvvəl bu bölməni tamamla, sonra addım 4-ə keç. Sertifikatı olmayan HTTPS konfiqurasiyasını live proxy-yə yükləmə.
+
 Verilən DNS qeydləri qalır:
 
 ```text
@@ -181,5 +183,7 @@ Racota tətbiqini geri almaq üçün əvvəlki mənbə/config və `IMAGE_TAG`-ə
 ## Yoxlama vəziyyəti və istinadlar
 
 Windows workspace-də Docker runtime yoxdur; Linux Docker build/start və real shared Nginx `nginx -t` burada icra edilməyib. Lokal Next production/standalone build, TypeScript, Django testləri və deployment fayllarının statik yoxlaması icra olunur. Server preflight mərhələləri bu limitə görə ayrıca verilib.
+
+Internal yoxlamalar virtual host-u `node:http` ilə göndərir. Əvvəlki Node `fetch` versiyası `Host` override-ını nəzərə almırdı və işlək API-yə yanlış hostla müraciət edərək 400 alırdı. Bunun üçün regresiya testləri: `node --test scripts/test_internal_checks.cjs`. Bu düzəliş təhlükəsizlik üçün Django `ALLOWED_HOSTS` siyahısını genişləndirmir və image rebuild tələb etmir.
 
 Rəsmi mənbələr: [Docker Compose şəbəkələri](https://docs.docker.com/compose/how-tos/networking/), [Cloudflare Full (strict)](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full-strict/), [Certbot DNS token konfiqurasiyası](https://certbot-dns-cloudflare.readthedocs.io/en/stable/), [Nginx proxy başlıqları](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header).
