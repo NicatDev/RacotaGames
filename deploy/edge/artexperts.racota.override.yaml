@@ -1,12 +1,20 @@
 # Merge WITH /opt/artexperts/compose.yaml; never use alone.
 services:
   nginx:
+    networks:
+      default:
+      racota_edge:
     volumes:
       - type: bind
-        source: /opt/racotagames/deploy/edge/racotagames.conf
+        source: /opt/RacotaGames/deploy/edge/racotagames.conf
         target: /etc/nginx/conf.d/racotagames.conf
         read_only: true
       - type: bind
-        source: /opt/racotagames/deploy/edge/cloudflare-realip.conf
+        source: /opt/RacotaGames/deploy/edge/cloudflare-realip.conf
         target: /etc/nginx/racota-cloudflare-realip.conf
         read_only: true
+
+networks:
+  racota_edge:
+    external: true
+    name: racota_edge

@@ -17,6 +17,14 @@ for name, service in services.items():
         ), f"{name} must not join another project's network"
 assert compose["networks"]["private"]["internal"] is True
 assert compose["networks"]["edge"]["external"] is True
+assert compose["networks"]["edge"]["name"] == "racota_edge"
+assert "racota-backend" in services["backend"]["networks"]["private"]["aliases"]
+assert "racota-frontend" in services["frontend"]["networks"]["private"]["aliases"]
+gateway = (root / "deploy/nginx/gateway.conf").read_text()
+assert "http://racota-backend:8000" in gateway
+assert "http://racota-frontend:3000" in gateway
+assert "http://backend:8000" not in gateway
+assert "http://frontend:3000" not in gateway
 assert compose["volumes"].keys() == {"postgres_data", "media", "staticfiles"}
 assert services["backend"]["environment"]["DJANGO_DEBUG"] == "false"
 assert (
@@ -33,10 +41,13 @@ override = yaml.safe_load(
     (root / "deploy/edge/artexperts.racota.override.yaml").read_text()
 )
 assert set(override["services"]) == {"nginx"}
-assert set(override["services"]["nginx"]) == {"volumes"}
+assert set(override["services"]["nginx"]) == {"volumes", "networks"}
+assert set(override["services"]["nginx"]["networks"]) == {"default", "racota_edge"}
+assert override["networks"]["racota_edge"]["external"] is True
+assert override["networks"]["racota_edge"]["name"] == "racota_edge"
 for mount in override["services"]["nginx"]["volumes"]:
     assert mount["read_only"] is True
-    assert mount["source"].startswith("/opt/racotagames/")
+    assert mount["source"].startswith("/opt/RacotaGames/")
 for path in root.rglob("*.sh"):
     if any(part in {"node_modules", ".venv", ".next"} for part in path.parts):
         continue

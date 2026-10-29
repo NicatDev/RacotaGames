@@ -11,7 +11,26 @@ Bu paket **135.181.44.47** serverindəki hazırkı infrastruktur üçün hazırl
 | Mövcud edge konteyneri | `artexperts-nginx-1` |
 | Mövcud Docker şəbəkəsi | `artexperts_default` |
 | Mövcud Compose | `/opt/artexperts/compose.yaml` |
-| Yeni layihə qovluğu | `/opt/racotagames` |
+| Yeni layihə qovluğu | `/opt/RacotaGames` |
+
+## Gateway DNS toqquşması üçün təmir
+
+Köhnə gateway eyni anda `artexperts_default` və `racotagames_private` şəbəkələrində olduğuna görə ümumi `backend` və `frontend` adları Art Experts ünvanlarına çevrilə bilirdi. Serverdə bu təsdiqləndi: gateway `backend → 172.18.0.4` görürdü, halbuki Racota backend-i `172.19.0.4` idi. `/healthz` yanlış tətbiqdən 404 alırdı.
+
+Düzəliş ayrıca **racota_edge** ingress şəbəkəsi və private şəbəkədə **racota-backend / racota-frontend** alias-ları istifadə edir. Əvvəlki `.env.production` daxilində `PROXY_NETWORK=artexperts_default` varsa artıq nəzərə alınmır; secret-ləri dəyişmək lazım deyil.
+
+Mövcud deploy üçün (layihənin faktiki adı böyük hərflədir):
+
+```sh
+cd /opt/RacotaGames
+git status --short
+git pull --ff-only
+sh deploy/repair-gateway.sh
+```
+
+`git pull` lokal dəyişiklik səbəbindən dayanarsa, `reset --hard` etmə; fərqi əvvəl yoxla. Təmir yeni image build etmir. Racota backend/frontend alias-ları və gateway şəbəkəsi üçün yalnız bu üç Racota konteyneri yenidən yaradılır. DB və Redis konteynerlərinə, bütün DB/media volume-larına və `.env.production`-a toxunulmur. Mövcud Art Experts Nginx-ə `docker network connect` ilə əlavə şəbəkə qoşulur; əvvəlki bağlantı saxlanılır və Art Experts servisləri restart edilmir.
+
+Skript əvvəl Nginx sintaksisini, sonra healthcheck və internal routing-i yoxlayır. Əgər alias mərhələsi keçsə, `racota_edge` üzvləri yalnız `artexperts-nginx-1` və `racotagames-racota-gateway-1` olmalıdır. Gələcəkdə Nginx recreate zamanı yeni şəbəkə itməsin deyə aşağıdakı addım 4-dəki yenilənmiş override saxlanmalıdır. Təmir scripti sertifikat/vhost mount-u əlavə etmir və public HTTPS-in artıq işlədiyini iddia etmir; onu ayrıca yoxla.
 
 ## Quruluş
 
@@ -19,7 +38,7 @@ Bu paket **135.181.44.47** serverindəki hazırkı infrastruktur üçün hazırl
 Cloudflare (Proxied, Full strict)
         ↓ HTTPS :443
 artexperts-nginx-1 — əvvəlki virtual host-lar saxlanılır
-        ↓ artexperts_default / racota-gateway:8080
+        ↓ racota_edge / racota-gateway:8080
 Racota gateway — static/media read-only volumes
         ↓ yalnız racotagames_private şəbəkəsi
 Next.js :3000 ←→ Django/Gunicorn :8000
@@ -27,7 +46,7 @@ Next.js :3000 ←→ Django/Gunicorn :8000
                   PostgreSQL + Redis
 ```
 
-Racota Compose heç bir host portu açmır. Yalnız `racota-gateway` mövcud şəbəkəyə qoşulur. PostgreSQL, Redis və tətbiqlər ayrıca internal şəbəkədədir; Artexperts DB/media volume-larını istifadə etmirlər. Paylaşılan yeganə volume sertifikat axını üçündür: `artexperts_certificates` external volume kimi saxlanılır. Yeni sertifikatın adı `racotagames.com`-dur.
+Racota Compose heç bir host portu açmır. Ayrıca `racota_edge` şəbəkəsinə yalnız giriş Nginx-i və `racota-gateway` qoşulur; Art Experts backend/frontend bu şəbəkədə deyil. PostgreSQL, Redis və tətbiqlər ayrıca internal şəbəkədədir; Artexperts DB/media volume-larını istifadə etmirlər. Paylaşılan yeganə volume sertifikat axını üçündür: `artexperts_certificates` external volume kimi saxlanılır. Yeni sertifikatın adı `racotagames.com`-dur.
 
 Frontend brauzeri `/api/backend/` ilə öz origin-inə müraciət edir. SSR isə `http://backend:8000` istifadə edir. Media API-də ictimai HTTPS ünvanı kimi qaytarılır, Next Image üçün daxili media proxy-yə çevrilir. CORS və `.racotagames.com` üzrə paylaşılan cookie tələb edilmir. Hər hostun cookie-si özünə aiddir; admin və sayt ayrı session-lar saxlayır.
 
@@ -44,9 +63,9 @@ scp ./artifacts/racotagames-deploy.tar.gz root@135.181.44.47:/tmp/racotagames-de
 Serverdə aşağıdakı əmrləri ayrı-ayrı icra et. Mövcud `/opt/artexperts` qovluğuna extract etmirik:
 
 ```sh
-mkdir -p /opt/racotagames
-tar -xzf /tmp/racotagames-deploy.tar.gz -C /opt/racotagames
-cd /opt/racotagames
+mkdir -p /opt/RacotaGames
+tar -xzf /tmp/racotagames-deploy.tar.gz -C /opt/RacotaGames
+cd /opt/RacotaGames
 python3 scripts/configure_deploy.py --email YOUR_REAL_EMAIL
 ```
 
@@ -98,7 +117,7 @@ Certbot mövcud certificate volume-unda ayrıca `live/racotagames.com/` yaradır
 
 ## 4. Mövcud Nginx-ə əlavə et
 
-Yeni virtual host faylı `deploy/edge/racotagames.conf`-dur. `artexperts.racota.override.yaml` yalnız **iki read-only fayl mount-u** əlavə edir; əvvəlki image, port, network və volume-lar base Compose-dan qalır. Əvvəl yoxla:
+Yeni virtual host faylı `deploy/edge/racotagames.conf`-dur. `artexperts.racota.override.yaml` **iki read-only fayl mount-u və əlavə `racota_edge` şəbəkəsi** verir; Nginx əvvəlki `default` şəbəkəsində də qalır. Əvvəlki image, port və volume-lar base Compose-dan saxlanılır. Əvvəl yoxla:
 
 ```sh
 sh deploy/edge/preflight.sh
@@ -109,11 +128,11 @@ Bu, mövcud edge image-i ilə host portu açmayan müvəqqəti konteynerdə tam 
 **İlk dəfə yeni mount əlavə etmək üçün yalnız paylaşılan Nginx konteyneri yenidən yaradılmalıdır.** Artexperts frontend/backend/DB toxunulmur, amma bu qısa proxy keçidi mövcud HTTP bağlantılarına təsir edə bilər. Bu işi uyğun anda et. Yeni fayllar konteyner restartından sonra da qalacaq:
 
 ```sh
-docker compose -p artexperts --project-directory /opt/artexperts -f /opt/artexperts/compose.yaml -f /opt/racotagames/deploy/edge/artexperts.racota.override.yaml up -d --no-deps --no-build --pull never nginx
+docker compose -p artexperts --project-directory /opt/artexperts -f /opt/artexperts/compose.yaml -f /opt/RacotaGames/deploy/edge/artexperts.racota.override.yaml up -d --no-deps --no-build --pull never nginx
 docker exec artexperts-nginx-1 nginx -t
 ```
 
-Artexperts Nginx üçün gələcək `up` əmrlərində də hər iki `-f` faylını istifadə et. Əks halda yeni mount-lar itər. Mövcud layihədə başqa override/workflow varsa, bu iki mount-u onun mənbə konfiqurasiyasına birləşdir; base faylını bütöv əvəz etmə.
+Artexperts Nginx üçün gələcək `up` əmrlərində də hər iki `-f` faylını istifadə et. Əks halda yeni mount-lar itər. Mövcud layihədə başqa override/workflow varsa, bu iki mount-u və əlavə şəbəkəni onun mənbə konfiqurasiyasına birləşdir; base faylını bütöv əvəz etmə.
 
 Gələcəkdə yalnız konfiqurasiya məzmunu dəyişirsə mount artıq var: `nginx -t` sonra `nginx -s reload` kifayətdir. Shared edge üçün `restart`, bütün project üçün `down` və ya ümumi Docker prune əmrləri lazım deyil.
 
@@ -147,7 +166,7 @@ Timer yalnız `racotagames.com` sertifikatını yoxlayır. Uğurlu renewal əmri
 ## Sonrakı buraxılış, backup və geri qayıtma
 
 ```sh
-cd /opt/racotagames
+cd /opt/RacotaGames
 sh deploy/backup.sh
 # Mənbəni yenilə. .env.production şifrələrini dəyişmə.
 # IMAGE_TAG-i .env.production-da yeni buraxılış adına dəyişərək əvvəlki image-i saxla.

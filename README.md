@@ -83,7 +83,7 @@ npm.cmd --prefix frontend run build
 
 ## Production / Docker
 
-Bu layihə `racotagames.com` (Next.js) və `app.racotagames.com` (API/admin/media) üçün Docker-lə hazırlanıb. Server: `135.181.44.47`. Mövcud `artexperts-nginx-1` konteyneri və `artexperts_default` şəbəkəsi ilə işləyir; yeni Compose host portu açmır.
+Bu layihə `racotagames.com` (Next.js) və `app.racotagames.com` (API/admin/media) üçün Docker-lə hazırlanıb. Server: `135.181.44.47`. Mövcud `artexperts-nginx-1` konteynerinə ayrıca `racota_edge` şəbəkəsi ilə qoşulur; yeni Compose host portu açmır.
 
 Bütün ardıcıllıq, sertifikat, hazırkı Nginx-ə əlavə mount, backup və yoxlama əmrləri **[DEPLOYMENT.md](DEPLOYMENT.md)** faylındadır. Server üçün mənbə arxivini `python scripts/package_deploy.py` ilə yarat. Production PostgreSQL və Redis istifadə edir; lokal SQLite/admin şifrələri arxivə daxil edilmir.
 

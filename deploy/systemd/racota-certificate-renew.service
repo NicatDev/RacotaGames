@@ -5,4 +5,4 @@ After=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh /opt/racotagames/deploy/renew-certificate.sh
+ExecStart=/bin/sh /opt/RacotaGames/deploy/renew-certificate.sh

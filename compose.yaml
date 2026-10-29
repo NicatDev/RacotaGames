@@ -57,7 +57,7 @@ services:
     environment:
       DJANGO_DEBUG: "false"
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Generate .env.production first}
-      DJANGO_ALLOWED_HOSTS: app.racotagames.com,racotagames.com,backend,localhost,127.0.0.1
+      DJANGO_ALLOWED_HOSTS: app.racotagames.com,racotagames.com,backend,racota-backend,localhost,127.0.0.1
       CSRF_TRUSTED_ORIGINS: https://racotagames.com,https://app.racotagames.com
       DJANGO_SSL_REDIRECT: "false"
       PUBLIC_MEDIA_ORIGIN: https://app.racotagames.com
@@ -71,7 +71,9 @@ services:
     volumes:
       - media:/app/media
       - staticfiles:/app/staticfiles
-    networks: [private]
+    networks:
+      private:
+        aliases: [racota-backend]
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -107,7 +109,9 @@ services:
       NEXT_PUBLIC_SITE_URL: https://racotagames.com
       NEXT_PUBLIC_BACKEND_URL: https://app.racotagames.com
       NODE_OPTIONS: --max-old-space-size=320
-    networks: [private]
+    networks:
+      private:
+        aliases: [racota-frontend]
     depends_on:
       backend: { condition: service_healthy }
     mem_limit: 512m
@@ -153,7 +157,8 @@ networks:
     internal: true
   edge:
     external: true
-    name: ${PROXY_NETWORK:-artexperts_default}
+    # Fixed dedicated ingress network; legacy PROXY_NETWORK values are ignored.
+    name: racota_edge
 
 volumes:
   postgres_data:
