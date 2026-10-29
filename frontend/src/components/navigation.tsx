@@ -184,6 +184,7 @@ export function Footer({ lang }: { lang: Locale }) {
           © {new Date().getUTCFullYear()} RacotaGames. {d.rights}
         </span>
         <Link href={`/${lang}/privacy`}>{d.privacy}</Link>
+        <a href="mailto:info@racotagames.com">info@racotagames.com</a>
         <span className="footer-signal">
           <i /> {d.footerSignal}
         </span>

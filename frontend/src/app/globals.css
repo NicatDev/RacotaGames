@@ -1395,6 +1395,7 @@ p {
 }
 .footer-bottom {
   display: flex;
+  flex-wrap: wrap;
   gap: 30px;
   justify-content: space-between;
   border-top: 1px solid var(--line);
